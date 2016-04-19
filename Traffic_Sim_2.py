@@ -1,11 +1,10 @@
-
 ''' 
-UNFINISHED
-Sim V3
+Sim V2
 
-Using simpy, spawn car processes that meet at central intersection
+Using simpy, spawn car processes that move through area
 
 '''
+
 
 import simpy as sp
 import scipy.spatial.distance as spd
@@ -18,38 +17,24 @@ from collections import namedtuple
 from operator import itemgetter
 
 
-'''Model Parameters'''
+
 bound = [0, 10, 0, 1 ]
 NUM_CARS = 20
 num_drivers = 5
 CAR_LENGTH = .2
-
-
+env = sp.Environment()
 Driver_obj = namedtuple('Driver', ['ID','Vx', 'Vy', 'Reaction_Time'])
+
+
 drivers = sp.Store(env, capacity = num_drivers)
+
 for i in range(num_drivers):
     driver = Driver_obj('D'+str(i), np.random.rand(), 0, np.random.rand()/10) # speed x,y, reaction etc?
+    # driver_2 = Driver_obj('D2', .2, 0, .3) #
     drivers.put(driver)
+    # drivers.put(driver_2)
 
-
-'''Time delta for sim'''
 dt = 1./30
-
-
-'''
-Map of world
-Consists of roads and intersections, each which has bounds
-'''
-# road = x0, y0, x1, y1
-r1 = [0, 1, 5, 1]
-r2 = [5, 1, 5, 6]
-r3 = [5, 1, 10, 1]
-r4 = [5, 6, 10, 6]
-
-
-intersection = [[]]
-
-
 
 '''
 Car Process:
@@ -59,16 +44,20 @@ Car Process:
     - car steps = update position for time
     - 
 '''
+
+# let vy = 0 for now, no turns/rotation
+# state = [x, y, vx, vy]
+
+
+
 class Car():
-    def __init__(self, car_id, pos, v, driver_resource, env, path):
+    def __init__(self, car_id, pos, v, driver_resource, env, boundary):
         self.env = env
         self.car_id = car_id
         self.driver_pool = driver_resource
         self.xy = pos # [x, y]
         self.vxy = v # [vx, vy]
-
-        # instead of boundary, have path
-        
+        self.boundary = boundary #[xmin, xmax, ymin, ymax]
         self.history = []
         self.reaction_time = 1 # default
         self.active = False
@@ -93,7 +82,7 @@ class Car():
 
         #end
 
-    def traverse_road(self):
+    def traverse(self):
         in_boundary = True
         while in_boundary:
             yield self.env.timeout(dt)
@@ -105,7 +94,6 @@ class Car():
             self.update_vel()
             # save local record
             self.record_state()
-
 
 
     def update_pos(self, dt):
@@ -166,49 +154,6 @@ class Car():
         state = [in_boundary, self.car_id] + list(self.xy) + list(self.vxy)
         current_positions[int(self.car_id),:] = np.array(state)
 
-
-class Intersection():
-    def __init__(self, signal_logic, **roads):
-        self.roads = roads
-
-        self.state_per_road = []
-        self.logic = signal_logic
-
-
-    '''
-    Example state:
-         R1: 0
-        \___/
- R4:1   |___|  R2 :1
-        /   \ 
-         R3:0
-
-
-    states:  
-    0 = Red
-    1 = Green
-
-    Future:
-    11 = Green and left turn
-    01 = left turn only?
-    '''
-    def light_process(self):
-        while True:
-            yield env.timeout(dt)
-            self.apply_logic()
-
-    def apply_logic(self):
-        self.state_per_road = self.logic(self.roads, current_state)
-
-
-def simple_alternating_logic(roads, current_signal=None):
-    
-    if current_state is not None:
-        return {key:val==False for key,val in current_signal.items()}
-
-    # get road orientation
-    road1
-    # assign
 
 
 def rand_init(i):
